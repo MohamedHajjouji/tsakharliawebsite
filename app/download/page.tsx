@@ -9,7 +9,7 @@ export default async function Page() {
 
   const osName = os.name?.toLowerCase() || ''
   const playStoreLink = "https://play.google.com/store/apps/details?id=com.tsakharliya.tsakharliya&hl=en"
-  const appStoreLink = "https://apps.apple.com/us/app/tsakhar-liya/id6758496073"
+  const appStoreLink = "https://apps.apple.com/app/tsakhar-lia/id6758496073"
   if (osName.includes('ios')) {
     redirect(appStoreLink)
   }

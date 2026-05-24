@@ -1,31 +1,23 @@
 import { headers } from 'next/headers'
-import { userAgent } from 'next/server'
 import { redirect } from 'next/navigation'
-import App from 'next/app'
 
 export default async function Page() {
   const headersList = await headers()
-  const { os } = userAgent({ headers: headersList })
+  const userAgentHeader = headersList.get('user-agent') || ''
 
-  const osName = os.name?.toLowerCase() || ''
   const playStoreLink = "https://play.google.com/store/apps/details?id=com.tsakharliya.tsakharliya&hl=en"
   const appStoreLink = "https://apps.apple.com/app/tsakhar-lia/id6758496073"
-  if (osName.includes('ios')) {
+
+  const ua = userAgentHeader.toLowerCase()
+
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod') || ua.includes('mac os')) {
     redirect(appStoreLink)
   }
 
-  if (osName.includes('android')) {
+  if (ua.includes('android') || ua.includes('windows')) {
     redirect(playStoreLink)
-  }
-
-  if (osName.includes('windows')) {
-    redirect(playStoreLink)
-  }
-
-  if (osName.includes('mac')) {
-    redirect(appStoreLink)
   }
 
   // fallback
-  redirect('https://play.google.com/store/apps/details?id=com.tsakharliya.tsakharliya&hl=en')
+  redirect(playStoreLink)
 }

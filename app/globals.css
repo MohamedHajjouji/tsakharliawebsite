@@ -66,6 +66,8 @@ html { scroll-behavior: smooth; }
 @keyframes borderGlow { 0%,100% { border-color: rgba(200,168,78,0.15); } 50% { border-color: rgba(200,168,78,0.35); } }
 @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes scaleReveal { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes orbFloat1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,-30px) scale(1.15); } 66% { transform: translate(-25px,-55px) scale(0.9); } }
 @keyframes orbFloat2 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-35px,-20px) scale(1.1); } 66% { transform: translate(30px,25px) scale(0.85); } }
 
@@ -287,4 +289,111 @@ html { scroll-behavior: smooth; }
 .glow-orb {
   border-radius: 50%; position: absolute; pointer-events: none;
   filter: blur(80px); opacity: 0.3;
+}
+
+/* ===== HOME PAGE ANIMATIONS & STYLES ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
+.animate-breathe { animation: breathe 2s ease-in-out infinite; }
+
+.btn-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-hover:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 20px -10px rgba(208, 40, 40, 0.5);
+}
+
+.card-hover {
+  transition: all 0.4s ease;
+}
+.card-hover:hover {
+  transform: translateY(-8px) rotate(-1deg);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+}
+
+.clip-shape-1 { clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%); }
+.clip-shape-2 { clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 100%); }
+
+.form-input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background-color: #F4F4F5;
+  border: 2px solid transparent;
+  border-radius: 1rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  outline: none;
+  color: #1A1A1A;
+}
+.form-input::placeholder {
+  color: #9CA3AF;
+}
+.form-input:focus {
+  border-color: #D02828;
+  background-color: #FFFFFF;
+  box-shadow: 0 4px 14px 0 rgba(208, 40, 40, 0.1);
+}
+
+.nav-link { position: relative; }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: #D02828;
+  transition: width 0.3s ease;
+}
+.nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+.page-view {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+.page-view.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ── Add to Cart Button ──────────────────────────────────────────────── */
+.add-to-cart-btn {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.add-to-cart-btn--in-cart {
+  background-color: #FDE8E9;
+  color: #D02828;
+  border: 1px solid rgba(208, 40, 40, 0.15);
+}
+
+.add-to-cart-btn--add {
+  background-color: #D02828;
+  color: #FFFFFF;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .add-to-cart-btn--in-cart:hover {
+    background-color: #FECACA;
+  }
+
+  .add-to-cart-btn--add:hover {
+    background-color: #B91C1C;
+    transform: scale(1.05);
+  }
+
+  .add-to-cart-btn--add:active {
+    transform: scale(0.97);
+  }
 }

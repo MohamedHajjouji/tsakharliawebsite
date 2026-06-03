@@ -24,6 +24,13 @@ const amiri = Amiri({
   display: "swap",
 });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: "Tsakhar Lia - Ultra-Fast Moroccan Delivery Service",
   description: "Tsakhar Lia delivers anything from local stores to your doorstep in 15-35 minutes. Multi-store ordering, same store prices, no markup. Currently serving Benslimane, coming soon to Meknes.",

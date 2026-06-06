@@ -4,6 +4,7 @@ import StoreMenuClient from "@/app/components/StoreMenuClient";
 
 type PageProps = {
   params: Promise<{ storeName: string }>;
+  searchParams: Promise<{ view?: string }>;
 };
 
 async function getStoreData(storeNameSlug: string) {
@@ -51,8 +52,10 @@ async function getCategories(storeId: string) {
   return enriched;
 }
 
-export default async function StoreMenuPage({ params }: PageProps) {
+export default async function StoreMenuPage({ params, searchParams }: PageProps) {
   const { storeName: rawStoreName } = await params;
+  const { view } = await searchParams;
+  const viewOnly = view === '1';
   const storeName = rawStoreName.toLowerCase();
   const store = await getStoreData(storeName);
 
@@ -70,6 +73,7 @@ export default async function StoreMenuPage({ params }: PageProps) {
       opensAt={store.opens_at ?? null}
       closesAt={store.closes_at ?? null}
       categories={categories}
+      viewOnly={viewOnly}
     />
   );
 }

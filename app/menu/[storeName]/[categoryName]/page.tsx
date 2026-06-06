@@ -5,6 +5,7 @@ import { ProductOption } from "@/app/components/ProductModal";
 
 type PageProps = {
   params: Promise<{ storeName: string; categoryName: string }>;
+  searchParams: Promise<{ view?: string }>;
 };
 
 async function getStoreData(storeNameSlug: string) {
@@ -101,8 +102,10 @@ async function getProductOptionsMap(productIds: string[]): Promise<Record<string
   return map;
 }
 
-export default async function CategoryProductsPage({ params }: PageProps) {
+export default async function CategoryProductsPage({ params, searchParams }: PageProps) {
   const { storeName: rawStoreName, categoryName: rawCategoryName } = await params;
+  const { view } = await searchParams;
+  const viewOnly = view === '1';
   const storeName = rawStoreName.toLowerCase();
   const categoryName = rawCategoryName.toLowerCase();
   const store = await getStoreData(storeName);
@@ -130,6 +133,7 @@ export default async function CategoryProductsPage({ params }: PageProps) {
       storeNameSlug={storeName}
       resolvedCategory={resolvedCategory}
       productOptionsMap={productOptionsMap}
+      viewOnly={viewOnly}
     />
   );
 }

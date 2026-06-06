@@ -28,6 +28,7 @@ interface ProductModalProps {
   storeId: string;
   storeName: string;
   onClose: () => void;
+  viewOnly?: boolean;
 }
 
 export default function ProductModal({
@@ -36,6 +37,7 @@ export default function ProductModal({
   storeId,
   storeName,
   onClose,
+  viewOnly = false,
 }: ProductModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
@@ -271,64 +273,68 @@ export default function ProductModal({
               </div>
             )}
 
-            {/* Quantity & Total */}
-            <div className="border-t border-gray-100 pt-4 space-y-3">
-              {/* Quantity */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-700">Quantity</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:border-red-400 hover:text-red-500 transition-colors cursor-pointer"
-                    disabled={quantity <= 1}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  </button>
-                  <span className="w-10 text-center font-bold text-gray-900">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:border-red-400 hover:text-red-500 transition-colors cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
+            {/* Quantity, Total & Add to Cart — only in ordering mode */}
+            {!viewOnly && (
+              <>
+                <div className="border-t border-gray-100 pt-4 space-y-3">
+                  {/* Quantity */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-700">Quantity</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:border-red-400 hover:text-red-500 transition-colors cursor-pointer"
+                        disabled={quantity <= 1}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span className="w-10 text-center font-bold text-gray-900">{quantity}</span>
+                      <button
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:border-red-400 hover:text-red-500 transition-colors cursor-pointer"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <span className="text-sm font-bold text-gray-900">Total</span>
+                    <span className="text-xl font-black text-gray-900">
+                      {totalItemPrice.toFixed(2)}{' '}
+                      <span className="text-xs font-bold text-gray-400">MAD</span>
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Total */}
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <span className="text-sm font-bold text-gray-900">Total</span>
-                <span className="text-xl font-black text-gray-900">
-                  {totalItemPrice.toFixed(2)}{' '}
-                  <span className="text-xs font-bold text-gray-400">MAD</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Add to Cart Button */}
-            <button
-              onClick={handleAddToCart}
-              disabled={!canAdd}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#D02828' }}
-              onMouseEnter={(e) => {
-                if (canAdd) {
-                  e.currentTarget.style.backgroundColor = '#B91C1C';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(208, 40, 40, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#D02828';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              {canAdd ? `Add to Cart — ${totalItemPrice.toFixed(2)} MAD` : 'Select Required Options'}
-            </button>
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!canAdd}
+                  className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#D02828' }}
+                  onMouseEnter={(e) => {
+                    if (canAdd) {
+                      e.currentTarget.style.backgroundColor = '#B91C1C';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(208, 40, 40, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#D02828';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  {canAdd ? `Add to Cart — ${totalItemPrice.toFixed(2)} MAD` : 'Select Required Options'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

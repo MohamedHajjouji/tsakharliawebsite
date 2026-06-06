@@ -90,13 +90,11 @@ function cartReducer(state: CartState, action: CartAction): CartState {
               ? { ...item, quantity: item.quantity + action.payload.quantity }
               : item
           ),
-          isOpen: true,
         };
       }
       return {
         ...state,
         items: [...state.items, { ...action.payload }],
-        isOpen: true,
       };
     }
     case 'REMOVE_ITEM':

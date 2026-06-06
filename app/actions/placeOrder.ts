@@ -1,6 +1,7 @@
 'use server';
 
 import { supabase } from '@/app/lib/supabase';
+import { getDeliveryFee } from './deliveryFee';
 
 interface SelectedOptionInput {
   questionId: string;
@@ -80,10 +81,8 @@ export async function placeOrder(
       selected_options:
         item.selectedOptions && item.selectedOptions.length > 0
           ? item.selectedOptions.map((opt) => ({
-              question_id: opt.questionId,
-              question_label: opt.questionLabel,
-              option_id: opt.optionId,
-              option_label: opt.optionLabel,
+              question: opt.questionLabel,
+              label: opt.optionLabel,
               price: opt.optionPrice,
             }))
           : [],
@@ -97,11 +96,20 @@ export async function placeOrder(
       notes: `Customer: ${customerName} | Phone: ${userPhone || '(authenticated user)'}`,
     }));
 
+    // Calculate delivery fee based on user location, stores, and config
+    const storeIds = [...new Set(items.map((item) => item.storeId))];
+    const { fee: deliveryFee } = await getDeliveryFee(
+      location.lat,
+      location.lng,
+      storeIds,
+      userId
+    );
+
     // Call the database function that creates orders, order_items, and store_orders atomically
     const { data, error } = await supabase.rpc('create_order_with_items', {
       p_user_id: userId,
       p_total_price: totalPrice,
-      p_delivery_fee: 0,
+      p_delivery_fee: deliveryFee,
       p_delivery_lat: location.lat,
       p_delivery_lng: location.lng,
       p_delivery_address: location.address,

@@ -6,6 +6,7 @@ import { getPublicImageUrl, supabase } from '@/app/lib/supabase';
 import LocationPicker from './LocationPicker';
 import PhoneVerification from './PhoneVerification';
 import { placeOrder } from '@/app/actions/placeOrder';
+import { getDeliveryFee } from '@/app/actions/deliveryFee';
 
 export default function CartDrawer() {
   const {
@@ -25,6 +26,15 @@ export default function CartDrawer() {
 
   const [orderStatus, setOrderStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState<number | null>(null);
+  const [deliveryFeeBreakdown, setDeliveryFeeBreakdown] = useState<{
+    distanceFee: number;
+    multiStoreFee: number;
+    lateNightFee: number;
+    firstOrderFree: boolean;
+    farthestStoreDistance: number;
+  } | null>(null);
+  const [isCalculatingFee, setIsCalculatingFee] = useState(false);
 
   // Customer Info form state (Step 1)
   const [name, setName] = useState('');
@@ -74,6 +84,24 @@ export default function CartDrawer() {
   const handleVerified = (_phone: string, userId: string) => {
     setVerifiedUserId(userId);
     setCheckoutStep('location');
+  };
+
+  const handleLocationChange = async (lat: number, lng: number) => {
+    if (isCalculatingFee) return;
+    setIsCalculatingFee(true);
+
+    const storeIds = [...new Set(state.items.map((item) => item.storeId))];
+    const userId = state.verifiedUserId;
+
+    try {
+      const result = await getDeliveryFee(lat, lng, storeIds, userId);
+      setDeliveryFee(result.fee);
+      setDeliveryFeeBreakdown(result.breakdown);
+    } catch {
+      setDeliveryFee(null);
+      setDeliveryFeeBreakdown(null);
+    }
+    setIsCalculatingFee(false);
   };
 
   const handlePlaceOrder = async (location: {
@@ -405,17 +433,45 @@ export default function CartDrawer() {
                   </div>
                 ))}
               </div>
+              {/* Delivery Fee */}
+              {deliveryFee !== null && (
+                <div
+                  className="flex justify-between items-center mt-2 pt-2 border-t text-sm"
+                  style={{ borderColor: '#F3F4F6' }}
+                >
+                  <span style={{ color: '#6B7280' }}>Delivery Fee</span>
+                  {deliveryFeeBreakdown?.firstOrderFree ? (
+                    <span className="font-bold" style={{ color: '#059669' }}>FREE (First Order)</span>
+                  ) : (
+                    <span className="font-medium" style={{ color: '#1A1A1A' }}>
+                      {deliveryFee.toFixed(2)} MAD
+                    </span>
+                  )}
+                </div>
+              )}
+              {isCalculatingFee && (
+                <div
+                  className="flex justify-between items-center mt-2 pt-2 border-t text-sm"
+                  style={{ borderColor: '#F3F4F6' }}
+                >
+                  <span style={{ color: '#9CA3AF' }}>Calculating delivery...</span>
+                  <span style={{ color: '#9CA3AF' }}>—</span>
+                </div>
+              )}
               <div
                 className="flex justify-between items-center mt-3 pt-3 border-t font-bold"
                 style={{ borderColor: '#F3F4F6', color: '#1A1A1A' }}
               >
                 <span>Total</span>
-                <span className="text-lg">{subtotal.toFixed(2)} MAD</span>
+                <span className="text-lg">
+                  {(subtotal + (deliveryFee ?? 0)).toFixed(2)} MAD
+                </span>
               </div>
             </div>
 
             <LocationPicker
               onConfirm={handlePlaceOrder}
+              onLocationChange={handleLocationChange}
               onCancel={() => setCheckoutStep('verification')}
             />
 

@@ -1,6 +1,16 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix default marker icon paths for webpack/Next.js
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 interface LocationPickerProps {
   onConfirm: (location: {
@@ -8,16 +18,88 @@ interface LocationPickerProps {
     lat: number;
     lng: number;
   }) => void;
+  onLocationChange?: (lat: number, lng: number) => void;
   onCancel: () => void;
 }
 
-export default function LocationPicker({ onConfirm, onCancel }: LocationPickerProps) {
+export default function LocationPicker({ onConfirm, onLocationChange, onCancel }: LocationPickerProps) {
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [coordsManually, setCoordsManually] = useState(false);
+
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+    // Default center (Morocco) until GPS is acquired
+    const map = L.map(mapContainerRef.current, {
+      center: [31.7917, -7.0926],
+      zoom: 6,
+      zoomControl: true,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Create marker (initially hidden)
+    const marker = L.marker([31.7917, -7.0926], {
+      draggable: true,
+    });
+
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng();
+      const newLat = pos.lat;
+      const newLng = pos.lng;
+      setLat(newLat);
+      setLng(newLng);
+      if (onLocationChange) {
+        onLocationChange(newLat, newLng);
+      }
+    });
+
+    mapInstanceRef.current = map;
+    markerRef.current = marker;
+
+    // Cleanup on unmount
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update marker position when lat/lng changes
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const marker = markerRef.current;
+    if (!map || !marker) return;
+
+    if (lat !== null && lng !== null) {
+      const newPos = new L.LatLng(lat, lng);
+      marker.setLatLng(newPos);
+      if (!map.hasLayer(marker)) {
+        marker.addTo(map);
+      }
+      map.setView(newPos, map.getZoom() < 15 ? 15 : map.getZoom(), { animate: true });
+    }
+  }, [lat, lng]);
+
+  // Invalidate map size when it becomes visible
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (map) {
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+  }, []);
 
   const handleUseGPS = useCallback(() => {
     if (!navigator.geolocation) {
@@ -30,20 +112,24 @@ export default function LocationPicker({ onConfirm, onCancel }: LocationPickerPr
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLat(position.coords.latitude);
-        setLng(position.coords.longitude);
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        setLat(userLat);
+        setLng(userLng);
         setGeoLoading(false);
         setCoordsManually(false);
-        // Reverse geocode to get address if not already filled
+        if (onLocationChange) {
+          onLocationChange(userLat, userLng);
+        }
         if (!address) {
-          setAddress(`${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`);
+          setAddress(`${userLat.toFixed(6)}, ${userLng.toFixed(6)}`);
         }
       },
       (error) => {
         setGeoLoading(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setGeoError('Location permission denied. Please enter your address manually.');
+            setGeoError('Location permission denied. Please enter your address manually or use the map.');
             break;
           case error.POSITION_UNAVAILABLE:
             setGeoError('Location information is unavailable.');
@@ -57,7 +143,7 @@ export default function LocationPicker({ onConfirm, onCancel }: LocationPickerPr
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
-  }, [address]);
+  }, [address, onLocationChange]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,22 +157,6 @@ export default function LocationPicker({ onConfirm, onCancel }: LocationPickerPr
   };
 
   const isValid = address.trim().length > 0;
-
-  // Build OpenStreetMap static tile URL
-  const mapTileUrl =
-    lat !== null && lng !== null
-      ? `https://tile.openstreetmap.org/15/${Math.floor(
-          ((lng + 180) / 360) * 32768
-        )}/${Math.floor(
-          ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) /
-            2) *
-            32768
-        )}.png`
-      : null;
-
-  // Marker position in percent (relative to tile center)
-  const markerLeft = 50;
-  const markerTop = 50;
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
@@ -172,6 +242,44 @@ export default function LocationPicker({ onConfirm, onCancel }: LocationPickerPr
         {geoLoading ? 'Getting location...' : 'Use My Current Location'}
       </button>
 
+      {/* Interactive Map */}
+      <div className="rounded-xl overflow-hidden border border-gray-200">
+        <div
+          ref={mapContainerRef}
+          className="w-full h-64 sm:h-72"
+          style={{ backgroundColor: '#E5E7EB' }}
+        />
+        {lat !== null && lng !== null && (
+          <div
+            className="px-3 py-2 text-xs font-medium flex items-center justify-between"
+            style={{ backgroundColor: '#FAFAFA', color: '#6B7280' }}
+          >
+            <span>
+              Drag the pin to adjust your location
+            </span>
+            <span>
+              {lat.toFixed(5)}, {lng.toFixed(5)}
+            </span>
+          </div>
+        )}
+        {lat === null && lng === null && !geoLoading && (
+          <div
+            className="px-3 py-2 text-xs font-medium text-center"
+            style={{ backgroundColor: '#FAFAFA', color: '#9CA3AF' }}
+          >
+            Use GPS or enter coordinates to place a pin on the map
+          </div>
+        )}
+        {geoLoading && (
+          <div
+            className="px-3 py-2 text-xs font-medium text-center"
+            style={{ backgroundColor: '#FAFAFA', color: '#9CA3AF' }}
+          >
+            Acquiring your location...
+          </div>
+        )}
+      </div>
+
       {/* Location Confirmed Indicator */}
       {lat !== null && lng !== null && !geoLoading && (
         <div
@@ -198,54 +306,6 @@ export default function LocationPicker({ onConfirm, onCancel }: LocationPickerPr
         </div>
       )}
 
-      {/* Map Preview */}
-      {lat !== null && lng !== null && !geoLoading && (
-        <div className="rounded-xl overflow-hidden border border-gray-200 relative">
-          <div className="relative w-full h-48 bg-gray-100">
-            {mapTileUrl && (
-              <img
-                src={mapTileUrl}
-                alt="Map of your location"
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            )}
-            {/* Crosshair marker */}
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                left: `${markerLeft}%`,
-                top: `${markerTop}%`,
-                transform: 'translate(-50%, -100%)',
-              }}
-            >
-              <svg
-                className="w-8 h-8 drop-shadow-lg"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
-                <path
-                  d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7.03 12.5 7.49 13.1.29.38.7.6 1.09.6s.8-.22 1.09-.6C14.42 20.5 20 14.17 20 8c0-4.42-3.58-8-8-8z"
-                  fill="#D02828"
-                  stroke="white"
-                  strokeWidth="1.5"
-                />
-                <circle cx="12" cy="8" r="3" fill="white" />
-              </svg>
-            </div>
-          </div>
-          <div
-            className="px-3 py-2 text-xs font-medium flex items-center justify-between"
-            style={{ backgroundColor: '#FAFAFA', color: '#6B7280' }}
-          >
-            <span>Your selected location</span>
-            <span>
-              {lat.toFixed(5)}, {lng.toFixed(5)}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Geo Error */}
       {geoError && (
         <div
@@ -256,7 +316,7 @@ export default function LocationPicker({ onConfirm, onCancel }: LocationPickerPr
         </div>
       )}
 
-      {/* Hidden lat/lng manual inputs */}
+      {/* Manual coordinate inputs */}
       {lat === null && !geoLoading && !geoError && (
         <button
           type="button"

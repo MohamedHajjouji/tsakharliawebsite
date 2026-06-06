@@ -19,6 +19,7 @@ interface StoreMenuClientProps {
   opensAt: string | null;
   closesAt: string | null;
   categories: Category[];
+  viewOnly?: boolean;
 }
 
 export default function StoreMenuClient({
@@ -28,6 +29,7 @@ export default function StoreMenuClient({
   opensAt,
   closesAt,
   categories,
+  viewOnly = false,
 }: StoreMenuClientProps) {
   return (
     <CartProvider>
@@ -91,8 +93,8 @@ export default function StoreMenuClient({
                 </div>
               </div>
 
-              {/* Cart Button */}
-              <CartHeaderButton />
+              {/* Cart Button (only in ordering mode) */}
+              {!viewOnly && <CartHeaderButton />}
             </div>
           </div>
         </header>
@@ -130,7 +132,7 @@ export default function StoreMenuClient({
                 return (
                   <Link
                     key={cat.id}
-                    href={`/menu/${storeNameSlug}/${catSlug}`}
+                    href={`/menu/${storeNameSlug}/${catSlug}${viewOnly ? '?view=1' : ''}`}
                     className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-lg hover:border-red-200 hover:-translate-y-0.5 active:scale-[0.98]"
                   >
                     {/* Category Image */}
@@ -190,7 +192,7 @@ export default function StoreMenuClient({
           )}
         </main>
 
-        <CartDrawer />
+        {!viewOnly && <CartDrawer />}
       </div>
     </CartProvider>
   );
